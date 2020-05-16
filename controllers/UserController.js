@@ -17,9 +17,9 @@ class UserController {
             this.showPanelCreate();
         });
 
-        this.formUpdateEl.addEventListener('submit', e => {
+        this.formUpdateEl.addEventListener('submit', event => {
 
-            e.preventDefault();
+            event.preventDefault();
 
             let btn = this.formUpdateEl.querySelector("[type=submit]");
 
@@ -37,7 +37,7 @@ class UserController {
 
             this.getPhoto(this.formUpdateEl).then((content) => {
 
-                if (values.photo) {
+                if (!values.photo) {
                     result._photo = userOld._photo;
                 } else {
                     result._photo = content;
@@ -47,9 +47,11 @@ class UserController {
 
                 user.loadFromJSON(result);
 
+                user.save();
+
                 this.getTr(user, tr);
 
-                this.addEventsTR(tr);
+                this.addEventsTr(tr);
 
                 this.updateCount();
 
@@ -83,9 +85,10 @@ class UserController {
             }
 
             this.getPhoto(this.formEl).then((content) => {
+
                 values.photo = content;
 
-                this.insert(values);
+                values.save();
 
                 this.addLine(values);
 
@@ -106,7 +109,8 @@ class UserController {
             let fileReader = new FileReader();
 
             let elements = [...formEl.elements].filter(item => {
-                if (item.name == "photo") {
+
+                if (item.name === 'photo') {
                     return item;
                 }
             });
@@ -138,7 +142,8 @@ class UserController {
 
         [...formEl.elements].forEach(function(field, index) {
 
-            if (['name', 'email', 'password'].indexOf > -1 && !field.value) {
+            if (['name', 'email', 'password'].indexOf(field.name) > -1 && !field.value) {
+
                 field.parentElement.classList.add('has-error');
                 isValid = false;
             }
@@ -172,24 +177,9 @@ class UserController {
         );
     }
 
-    getUsersStorage() {
-
-        let users = [];
-
-        // if (sessionStorage.getItem("users")) {
-        //     users = JSON.parse(sessionStorage.getItem("users"));
-        // }
-
-        if (localStorage.getItem("users")) {
-            users = JSON.parse(localStorage.getItem("users"));
-        }
-
-        return users;
-    }
-
     selectAll() {
 
-        let users = this.getUsersStorage();
+        let users = User.getUsersStorage();
 
         users.forEach(dataUser => {
 
@@ -200,16 +190,6 @@ class UserController {
             this.addLine(user);
         });
 
-    }
-
-    insert(data) {
-
-        let users = this.getUsersStorage();
-
-        users.push(data);
-
-        // sessionStorage.setItem("users", JSON.stringify(users));
-        localStorage.setItem("users", JSON.stringify(users));
     }
 
     addLine(dataUser) {
@@ -225,7 +205,7 @@ class UserController {
 
         if (tr === null) {
 
-            tr = document.createElement("tr");
+            tr = document.createElement('tr');
         }
 
         tr.dataset.user = JSON.stringify(dataUser);
@@ -242,22 +222,30 @@ class UserController {
             </td>
         `;
 
-        this.addEventsTR(tr);
+        this.addEventsTr(tr);
 
         return tr;
     }
 
-    addEventsTR(tr) {
+    addEventsTr(tr) {
 
-        tr.querySelector('.btn-delete').addEventListener('click', e => {
+        tr.querySelector(".btn-delete").addEventListener("click", e => {
 
             if (confirm('Deseja realmente excluir?')) {
+
+                let user = new User();
+
+                user.loadFromJSON(JSON.parse(tr.dataset.user));
+
+                user.remove();
+
                 tr.remove();
+
                 this.updateCount();
             }
         });
 
-        tr.querySelector('.btn-edit').addEventListener('click', e => {
+        tr.querySelector(".btn-edit").addEventListener("click", e => {
 
             let json = JSON.parse(tr.dataset.user);
 
@@ -268,10 +256,6 @@ class UserController {
                 let field = this.formUpdateEl.querySelector("[name=" + name.replace("_", "") + "]");
 
                 if (field) {
-
-                    if (field.type == 'file') {
-                        continue;
-                    }
 
                     switch (field.type) {
                         case 'file':
@@ -289,9 +273,8 @@ class UserController {
 
                         default:
                             field.value = json[name];
+                            break;
                     }
-
-                    field.value = json[name];
                 }
             }
 
